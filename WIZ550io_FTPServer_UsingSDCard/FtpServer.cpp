@@ -570,67 +570,7 @@ boolean FtpServer::processCommand()
       data.stop();
     }
   }
-  //
-  //  MLSD - Listing for Machine Processing (see RFC 3659)
-  //
-  else if( ! strcmp( command, "MLSD" ))
-  {
-    if( ! dataConnect())
-      client.print("425 No data connection\r\n");
-    	//client << "425 No data connection\r\n";
-    else
-    {
-      client.print("150 Accepted data connection\r\n");
-    	//client << "150 Accepted data connection\r\n";
-      char fileName[ FTP_FIL_SIZE ];
-      bool isFile;
-      uint32_t fileSize;
-      uint16_t nm = 0;
-      sdl.chdir( cwdName );
-      while( sdl.nextFile( fileName, & isFile, & fileSize ))
-      {
-    	  data.print("Type="); data.print(isFile ? "file" : "dir");
-    	  data.print(";Size="); data.print(fileSize); data.print(";"); data.print(fileName); data.print("\r\n");
-//        data << "Type=" << ( isFile ? "file" : "dir" ) << ";"
-//             << "Size=" << fileSize << "; " << fileName << "\r\n";
-        nm ++;
-      }
-      client.print("226-options: -a -l\r\n");
-      client.print("226 "); client.print(nm); client.print(" matches total\r\n");
-      //client << "226-options: -a -l\r\n";
-      //client<< "226 " << nm << " matches total\r\n";
-      data.stop();
-    }
-  }
-  //
-  //  NLST - Name List
-  //
-  else if( ! strcmp( command, "NLST" ))
-  {
-    if( ! dataConnect())
-      client.print("425 No data connection\r\n");
-    	//client << "425 No data connection\r\n";
-    else
-    {
-      client.print("150 Accepted data connection\r\n");
-    	//client << "150 Accepted data connection\r\n";
-      char fileName[ FTP_FIL_SIZE ];
-      bool isFile;
-      uint32_t fileSize;
-      uint16_t nm = 0;
-      sdl.chdir( cwdName );
-      while( sdl.nextFile( fileName, & isFile, & fileSize ))
-      {
-        data.print(fileName); data.print("\r\n");
-    	  //data << fileName << "\r\n";
-        nm ++;
-      }
-      client.print("226 ");
-      client.print(nm); client.print(" matches total\r\n");
-      //client << "226 " << nm << " matches total\r\n";
-      data.stop();
-    }
-  }
+  
   //
   //  NOOP
   //
@@ -793,92 +733,6 @@ boolean FtpServer::processCommand()
       }
     }
   }
-  //
-  //  RNFR - Rename From
-  //
-  else if( ! strcmp( command, "RNFR" ))
-  {
-    cwdRNFR[ 0 ] = 0;
-    if( strlen( parameters ) == 0 )
-    	client.print("501 No file name\r\n");
-      //client << "501 No file name\r\n";
-    else
-    {
-      char dir[ FTP_FIL_SIZE ];
-      makePathName( dir, cwdRNFR, FTP_CWD_SIZE );
-      #ifdef FTP_DEBUG
-  	  Serial.print("Renaming "); Serial.println(dir); Serial.print(" in "); Serial.println(cwdRNFR);
-      //Serial << "Renaming " << dir << " in " << cwdRNFR << endl;
-      #endif
-      if( ! sdl.chdir( cwdRNFR ) || ! sdl.exists( dir ))
-      {
-    	  client.print("550 File "); client.print(parameters); client.print(" not found\r\n");
-//        client << "550 File " << parameters << " not found\r\n";
-      }
-      else if( strlen( cwdRNFR ) + strlen( dir ) + 1 > FTP_CWD_SIZE )
-      	client.print("500 Command line too long\r\n");
-//        client << "500 Command line too long\r\n";
-      else
-      {
-        if( cwdRNFR[ strlen( cwdRNFR ) - 1 ] != '/' )
-          strcat( cwdRNFR, "/" );
-        strcat( cwdRNFR, dir );
-      	client.print("350 RNFR accepted - file exists, ready for destination\r\n");
-        //client << "350 RNFR accepted - file exists, ready for destination\r\n";
-      }
-    }
-  }
-  //
-  //  RNTO - Rename To
-  //
-  else if( ! strcmp( command, "RNTO" ))
-  {
-    if( strlen( cwdRNFR ) == 0 )
-      	client.print("503 Need RNFR before RNTO\r\n");
-//      client << "503 Need RNFR before RNTO\r\n";
-    else if( strlen( parameters ) == 0 )
-      	client.print("501 No file name\r\n");
-//      client << "501 No file name\r\n";
-    else
-    {
-      char path[ FTP_CWD_SIZE ];
-      char dir[ FTP_FIL_SIZE ];
-      makePathName( dir, path, FTP_CWD_SIZE );
-      if( strlen( path ) + strlen( dir ) + 1 > FTP_CWD_SIZE )
-        	client.print("500 Command line too long\r\n");
-//        client << "500 Command line too long\r\n";
-      else if( ! sdl.chdir( path ))
-      {
-    	  client.print("550 \""); client.print(path); client.print("\" is not directory\r\n");
-//        client << "550 \"" << path << "\" is not directory\r\n";
-      }
-      else
-      {
-        if( path[ strlen( path ) - 1 ] != '/' )
-          strcat( path, "/" );
-        strcat( path, dir );
-        if( sdl.exists( path ))
-        {
-        	client.print("553 "); client.print(parameters); client.print(" already exists\r\n");
-//          client << "553 " << parameters << " already exists\r\n";
-        }
-        else
-        {
-          #ifdef FTP_DEBUG
-        	  Serial.print("Renaming "); Serial.println(cwdRNFR); Serial.print(" to "); Serial.println(path);
-        	//Serial << "Renaming " << cwdRNFR << " to " << path << endl;
-          #endif
-
-        	if( sdl.rename( cwdRNFR, path ))
-          	client.print("250 File successfully renamed or moved\r\n");
-//            client << "250 File successfully renamed or moved\r\n";
-          else
-            	client.print("451 Rename/move failure\r\n");
-//            client << "451 Rename/move failure\r\n";
-        }
-      }
-    }
-  }
 
   ///////////////////////////////////////
   //                                   //
@@ -956,38 +810,6 @@ boolean FtpServer::processCommand()
       }
     }
     // */
-  }
-  //
-  //  SITE - System command
-  //
-  else if( ! strcmp( command, "SITE" ))
-  {
-    if( ! strcmp( parameters, "FREE" ))
-    {
-        client.print("200 "); client.print(sdl.free()); client.print(" MB free of "); client.print(sdl.capacity()); client.print(" MB capacity\r\n");
-//      client << "200 " << sdl.free() << " MB free of " << sdl.capacity() << " MB capacity\r\n";
-    }
-    /*
-    else if( ! strcmp( parameters, "NAME LONG" ))
-    {
-      sdl.setNameLong( true );
-      strcpy( cwdName, "/" );
-      client << "200 Ok. Use long names\r\n";
-      cmdStatus = 0;
-    }
-    else if( ! strcmp( parameters, "NAME 8.3" ))
-    {
-      sdl.setNameLong( false );
-      strcpy( cwdName, "/" );
-      client << "200 Ok. Use 8.3 names\r\n";
-      cmdStatus = 0;
-    }
-    */
-    else
-    {
-        client.print("500 Unknow SITE command "); client.print(parameters); client.print("\r\n");
-//    	client << "500 Unknow SITE command " << parameters << "\r\n";
-    }
   }
   //
   //  SYST
