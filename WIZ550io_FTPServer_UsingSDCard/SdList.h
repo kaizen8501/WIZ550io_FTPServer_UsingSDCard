@@ -1,7 +1,7 @@
 #ifndef SD_LIST_H
 #define SD_LIST_H
 
-#include <SD.h>
+#include "SD.h"
 
 class SdList : public SDClass
 {

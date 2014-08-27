@@ -1,7 +1,7 @@
 #include "SdList.h"
 #include "utility/SdFat.h"
 #include "utility/SdFatUtil.h"
-#include <SD.h>
+#include "SD.h"
 
 //  Sd2Card card;
 //  SdVolume volume;
@@ -12,7 +12,7 @@ SdList::SdList()
 
 bool SdList::chdir()
 {
-	root.close();
+	SDClass::root.close();
 	return root.openRoot(volume);
 }
 
